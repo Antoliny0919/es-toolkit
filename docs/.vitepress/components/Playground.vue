@@ -36,14 +36,24 @@
         <div class="playground-header-actions">
           <button
             v-if="currentDoc"
-            class="playground-doc-toggle"
+            class="playground-header-btn playground-doc-toggle"
             :class="{ active: showDoc }"
             @click="showDoc = !showDoc"
             :title="t.toggleDoc"
           >
             &#9432;
           </button>
-          <button class="playground-reset-btn" @click="resetCode" :title="t.reset">&#8635;</button>
+          <button
+            class="playground-header-btn playground-copy-btn"
+            :class="{ copied }"
+            @click="copyCode"
+            :title="t.copy"
+          >
+            {{ copied ? '&#10003;' : '&#10063;' }}
+          </button>
+          <button class="playground-header-btn playground-reset-btn" @click="resetCode" :title="t.reset">
+            &#8635;
+          </button>
         </div>
       </div>
       <div v-if="currentDoc && showDoc" class="playground-doc-panel">
@@ -124,6 +134,7 @@ const translations = {
   en: {
     searchPlaceholder: 'Search functions...',
     selectFunction: 'Select a function to start',
+    copy: 'Copy code',
     reset: 'Reset code',
     toggleDoc: 'Toggle documentation',
     parameters: 'Parameters',
@@ -132,6 +143,7 @@ const translations = {
   ko: {
     searchPlaceholder: '함수 검색...',
     selectFunction: '함수를 선택하세요',
+    copy: '코드 복사',
     reset: '코드 초기화',
     toggleDoc: '문서 보기',
     parameters: '파라미터',
@@ -140,6 +152,7 @@ const translations = {
   ja: {
     searchPlaceholder: '関数を検索...',
     selectFunction: '関数を選択してください',
+    copy: 'コードをコピー',
     reset: 'コードをリセット',
     toggleDoc: 'ドキュメントを表示',
     parameters: 'パラメータ',
@@ -148,6 +161,7 @@ const translations = {
   zh_hans: {
     searchPlaceholder: '搜索函数...',
     selectFunction: '请选择一个函数',
+    copy: '复制代码',
     reset: '重置代码',
     toggleDoc: '查看文档',
     parameters: '参数',
@@ -317,6 +331,18 @@ console.log(${fn});
   sandpackKey.value++;
 }
 
+const copied = ref(false);
+
+async function copyCode() {
+  if (navigator.clipboard) {
+    await navigator.clipboard.writeText(currentCode.value);
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 1000);
+  }
+}
+
 function resetCode() {
   const selectKey = `${selectedCategory.value}/${selectedFunction.value}`;
   if (examples[selectKey]) {
@@ -462,7 +488,7 @@ function resetCode() {
   gap: 6px;
 }
 
-.playground-doc-toggle {
+.playground-header-btn {
   padding: 4px 8px;
   border: 1px solid var(--vp-c-divider);
   border-radius: 4px;
@@ -471,6 +497,15 @@ function resetCode() {
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
+}
+
+.playground-header-btn:hover {
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+}
+
+.playground-copy-btn.copied:hover {
+  background: var(--vp-c-bg);
 }
 
 .playground-doc-toggle:hover,
@@ -533,22 +568,6 @@ function resetCode() {
 
 .playground-doc-section p {
   margin: 0;
-}
-
-.playground-reset-btn {
-  padding: 4px 8px;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 4px;
-  background: var(--vp-c-bg);
-  color: var(--vp-c-text-2);
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.playground-reset-btn:hover {
-  background: var(--vp-c-bg-soft);
-  color: var(--vp-c-text-1);
 }
 
 .playground-sandpack {
