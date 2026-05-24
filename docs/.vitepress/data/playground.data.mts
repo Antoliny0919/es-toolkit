@@ -46,6 +46,46 @@ interface ParseResult {
   doc: PlaygroundFunctionDoc;
 }
 
+function hasTopLevelAwait(code: string): boolean {
+  const lines = code.split('\n');
+  let braceDepth = 0;
+  let parenDepth = 0;
+  let bracketDepth = 0;
+
+  for (const line of lines) {
+    const trimed = line.trim();
+    if (trimed.startsWith('import ') || trimed === '') {
+      continue;
+    }
+
+    const awaitIndex = line.indexOf('await ');
+    if (awaitIndex !== -1 && braceDepth === 0 && parenDepth === 0 && bracketDepth === 0) {
+      const beforeAwait = line.slice(0, awaitIndex);
+      if (!beforeAwait.includes('=>')) {
+        return true;
+      }
+    }
+
+    for (const char of trimed) {
+      if (char === '{') {
+        braceDepth++;
+      } else if (char === '}') {
+        braceDepth--;
+      } else if (char === '(') {
+        parenDepth++;
+      } else if (char === ')') {
+        parenDepth--;
+      } else if (char === '[') {
+        bracketDepth++;
+      } else if (char === ']') {
+        bracketDepth--;
+      }
+    }
+  }
+
+  return false;
+}
+
 function parseMarkdown(content: string, fnName: string): ParseResult | null {
   // 1. Extract description (first paragraph after "# heading")
   let description = '';
@@ -121,6 +161,9 @@ function parseMarkdown(content: string, fnName: string): ParseResult | null {
     }
     return "from 'es-toolkit'";
   });
+
+  // Sandpack doesn't support top-level await, so wrap body in async IIFE if needed.
+  const needsAsyncIIFE = hasTopLevelAwait(code);
 
   // Auto-insert console.log so results are visible in Sandpack console.
   if (!code.includes('console.log')) {
@@ -217,7 +260,14 @@ function parseMarkdown(content: string, fnName: string): ParseResult | null {
   const importMatch = code.match(/^(import\s+\{[^}]*\}\s+from\s+'[^']+';?\s*\n?)/);
   if (importMatch) {
     const importLine = importMatch[1].trimEnd();
-    const restCode = code.slice(importMatch[0].length).replace(/^\n+/, '');
+    let restCode = code.slice(importMatch[0].length).replace(/^\n+/, '');
+    if (needsAsyncIIFE) {
+      const indented = restCode
+        .split('\n')
+        .map(l => (l.trim() ? `  ${l}` : ''))
+        .join('\n');
+      restCode = `(async () => {\n${indented}\n})();`;
+    }
     return { code: `${importLine}\n\n${commentLines.join('\n')}\n\n${restCode}`, doc };
   }
 
