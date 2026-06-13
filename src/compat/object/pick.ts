@@ -104,7 +104,7 @@ export function pick<T extends object, U extends keyof T>(
       }
 
       if (typeof key === 'string' && Object.hasOwn(obj, key)) {
-        result[key] = value;
+        result[key] = obj[key];
       } else {
         set(result, key, value);
       }
